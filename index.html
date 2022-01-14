@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SCG</title>
+</head>
+<body>
+<canvas width="1200" height="600"></canvas>
+<div style="position: absolute; top: 1em; left: 2em; font-family: sans-serif;">
+    <h1></h1>
+    <h2></h2>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script>
+    const MONTHS_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+    class Month {
+
+        constructor(year, n) {
+            this.year = year
+            this.n = n
+            this.name = MONTHS_NAMES[n]
+            this.papers = []
+        }
+
+        add(paper) {
+            this.papers.push(paper)
+        }
+
+    }
+
+    class Year {
+
+        constructor(n) {
+            this.n = n
+            this.months = []
+            for (let i = 0; i < 12; i = i + 1) {
+                this.months.push(new Month(n, i))
+            }
+        }
+
+        add(paper) {
+            const month = paper.month === null ? Math.floor(Math.random() * this.months.length) : paper.month
+            this.months[month].add(paper)
+        }
+
+    }
+
+    fetch('bib.json').then(response => response.json()).then(json => {
+        const asAuthor = s => {
+            const parts = s.split(',')
+            if (parts.length === 1) {
+                return parts[0].trim()
+            }
+            return `${parts[1]} ${parts[0]}`.trim()
+        }
+        const normalizeAuthor = s => {
+            return s.replace(/'e/g, 'é')
+                .replace(/'y/g, 'ý')
+                .replace(/'o/g, '̀ó')
+                .replace(/'c/g, 'ć')
+                .replace(/\\`e/g, 'è')
+                .replace(/"a/g, 'ä')
+                .replace(/"o/g, 'ö')
+                .replace(/"u/g, 'ü')
+                .replace(/\\\^\\i/g, 'î')
+                .replace(/\\\^i/g, 'î')
+                .replace(/\\cs/g, 'ş')
+                .replace(/\\vs/g, 'š')
+                .replace(/\\ss/g, 'ss')
+                .replace(/ [A-Z]\. /g, ' ')
+                .replace('NAtaliia', 'Nataliia')
+                .replace('Stephane Ducasse', 'Stéphane Ducasse')
+                .replace('Andrei Chis', 'Andrei Chiş')
+                .replace('Alexander Bergel', 'Alexandre Bergel')
+        }
+        const asAuthors = s => {
+            return s.split(/\band\b/).map(asAuthor).map(normalizeAuthor)
+        }
+        const asYear = s => {
+            if (Number.isInteger(s)) {
+                return s
+            }
+            const parsed = parseInt(s.split(' ').reverse()[0])
+            if (isNaN(parsed)) {
+                return null
+            }
+            return parsed
+        }
+        const asMonth = s => {
+            if (Number.isInteger(s)) {
+                return s
+            }
+            const n = s.toLowerCase()
+            if (n.startsWith('jan')) {
+                return 0
+            }
+            if (n.startsWith('feb')) {
+                return 1
+            }
+            if (n.startsWith('mar')) {
+                return 2
+            }
+            if (n.startsWith('apr')) {
+                return 3
+            }
+            if (n.startsWith('may')) {
+                return 4
+            }
+            if (n.startsWith('jun')) {
+                return 5
+            }
+            if (n.startsWith('jul')) {
+                return 6
+            }
+            if (n.startsWith('aug')) {
+                return 7
+            }
+            if (n.startsWith('sep')) {
+                return 8
+            }
+            if (n.startsWith('oct')) {
+                return 9
+            }
+            if (n.startsWith('nov')) {
+                return 10
+            }
+            if (n.startsWith('dec')) {
+                return 11
+            }
+            return null
+        }
+        const asKeywords = s => {
+            const parts = s.trim().split(/\s+/)
+            if (parts.length === 1 && parts[0].length === 0) {
+                return []
+            }
+            return parts
+        }
+        const scg = new Set([
+            'Andrei Chiş',
+            'Oscar Nierstrasz',
+            'Nataliia Stulova',
+            'Olivier Flückiger',
+            'Manuel Leuenberger',
+            'Pascal Gadient',
+            'Mohammadreza Hazhirpasand',
+            'Nitish Patkar',
+            'Pooja Rani',
+            'Franz Achermann',
+            'Erik Aeschlimann',
+            'Bledar Aga',
+            'Gabriela Arevalo',
+            'Alexandre Bergel',
+            'Roland Bertuli',
+            'Frank Buchli',
+            'Philipp Bunge',
+            'Damien Cassou',
+            'Andrea Caracciolo',
+            'Juan Carlos Cruz',
+            'Claudio Corrodi',
+            'Serge Demeyer',
+            'Marcus Denker',
+            'Sandro De Zanet',
+            'Stéphane Ducasse',
+            'David Erni',
+            'Olivier Flückiger',
+            'Markus Gaelli',
+            'Tudor Gîrba',
+            'Orla Greevy',
+            'David Gurtner',
+            'Daniel Langone',
+            'Lea Hänsenberger',
+            'Marcel Härry',
+            'Nicole Haenni',
+            'Andreas Hohler',
+            'Isabelle Huber',
+            'Aliya Ibragimova',
+            'Aaron Karper',
+            'Adrian Kuhn',
+            'Maudlin Kummer',
+            'Michele Lanza',
+            'Peng Liang',
+            'Max Leske',
+            'Markus Lumpe',
+            'Dominique Matter',
+            'Igor Metz',
+            'Leonel Merino',
+            'Nevena Milojković',
+            'Haidar Osman',
+            'Fabrizio Perin',
+            'Laura Ponisio',
+            'Andrea Quadri',
+            'Stefan Reichhart',
+            'Lukas Renggli',
+            'Jorge Ressia',
+            'Tamar Richner',
+            'Matthias Rieger',
+            'Nathanael Schärli',
+            'Jean-Guy Schneider',
+            'Dennis Schenk',
+            'Niko Schwarz',
+            'Daniel Schweizer',
+            'Lukas Steiger',
+            'Sander Tichelaar',
+            'Yuriy Tymchuk',
+            'Toon Verwaest',
+            'Erwann Wernli',
+            'Roel Wuyts'])
+        json.forEach(e => {
+            e.authors = asAuthors(e.AUTHOR || '')
+            e.scgAuthors = e.authors.filter(e => scg.has(e))
+            e.year = asYear(e.YEAR || '')
+            e.month = asMonth(e.MONTH || '')
+            e.keywords = asKeywords(e.KEYWORDS || '')
+        })
+        const oscar = 'Oscar Nierstrasz'
+        // people photos for nodes
+        const WIDTH = 1200
+        const HEIGHT = 600
+        const CENTER = {
+            x: WIDTH / 2,
+            y: HEIGHT / 2
+        }
+        const papers = json.filter(e => e.scgAuthors.length > 0 && e.year >= 1994).map(p => Object.assign(p, {
+            id: p.key,
+            name: null,
+            priority: 0,
+            fillStyle: '#d9d9d9',
+            r: 4,
+            x: WIDTH - CENTER.x,
+            y: CENTER.y
+        }))
+        const authors = Array.from(new Set(papers.flatMap(p => p.authors))).map(a => {
+            const node = {
+                id: a,
+                name: scg.has(a) ? a : null,
+                priority: scg.has(a) ? 2 : 1,
+                fillStyle: '#69c0ff',
+                r: 8,
+                x: CENTER.x,
+                y: CENTER.y / 2
+            }
+            if (a === oscar) {
+                Object.assign(node, {
+                    priority: 3,
+                    fx: CENTER.x,
+                    fy: CENTER.y
+                })
+            }
+            return node
+        })
+        const years = []
+        for (let i = 1994; i < 2023; i = i + 1) {
+            years.push(new Year(i))
+        }
+        for (const paper of papers) {
+            years[paper.year - 1994].add(paper)
+        }
+        const months = years.flatMap(e => e.months)
+        const nodes = [authors.find(o => o.id === oscar)]
+        const links = []
+        const simulation = d3.forceSimulation(nodes).alphaDecay(0.0001)
+            .force('link', d3.forceLink(links).id(l => l.id).distance(64).strength(0.5))
+            .force('charge', d3.forceManyBody().strength(-32))
+            .force('collide', d3.forceCollide(16).iterations(4))
+        const h1 = document.querySelector('h1')
+        const h2 = document.querySelector('h2')
+        const canvas = document.querySelector('canvas')
+        const context = canvas.getContext('2d')
+        context.strokeStyle = '#d9d9d9'
+        context.lineWidth = 2
+        context.textAlign = 'center'
+        context.font = '16px sans-serif'
+        const draw = () => {
+            context.clearRect(0, 0, WIDTH, HEIGHT)
+            context.beginPath()
+            links.forEach((d) => {
+                context.moveTo(d.source.x, d.source.y)
+                context.lineTo(d.target.x, d.target.y)
+            })
+            context.stroke()
+            for (const node of nodes.sort((a, b) => a.priority < b.priority ? -1 : 0)) {
+                context.beginPath()
+                context.moveTo(node.x + node.r, node.y)
+                context.arc(node.x, node.y, node.r, 0, 2 * Math.PI)
+                context.fillStyle = node.fillStyle
+                context.fill()
+                if(node.name){
+                    context.fillStyle = 'rgba(0,0,0,0.5)'
+                    const parts = node.name.split(' ')
+                    context.textBaseline = 'top'
+                    context.fillText(parts.pop(), node.x, node.y)
+                    context.textBaseline = 'bottom'
+                    context.fillText(parts.join(' '), node.x, node.y)
+                }
+            }
+        }
+        let buffer = []
+        simulation.on('tick', draw)
+        const interval = setInterval(() => {
+            const month = months.shift()
+            if (months.length === 0) {
+                clearInterval(interval)
+            }
+            h1.innerText = month.year
+            h2.innerText = month.name
+            const added = {
+                papers: month.papers,
+                links: []
+            }
+            for (const paper of month.papers) {
+                console.log('add paper')
+                nodes.push(paper)
+                for (const author of paper.authors) {
+                    const node = authors.find(o => o.id === author)
+                    if (!nodes.some(n => n.id === author)) {
+                        console.log('add author')
+                        nodes.push(node)
+                    }
+                    const link = {
+                        source: node.id,
+                        target: paper.id
+                    }
+                    added.links.push(link)
+                    links.push(link)
+                }
+            }
+            buffer.push(added)
+            if (buffer.length > 12) {
+                const oldest = buffer.shift()
+                for (const paper of oldest.papers) {
+                    console.log('delete paper')
+                    nodes.splice(nodes.indexOf(paper), 1)
+                }
+                for (const link of oldest.links) {
+                    console.log('delete link')
+                    links.splice(links.indexOf(link), 1)
+                }
+            }
+            simulation.nodes(nodes)
+            simulation.force('link').links(links)
+            simulation.alpha(1).restart()
+            draw()
+        }, 500)
+    }, error => console.error(error))
+</script>
+</body>
+</html>
